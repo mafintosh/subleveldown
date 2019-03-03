@@ -39,16 +39,21 @@ function SubDown (db, prefix, opts) {
   if (typeof opts === 'string') opts = {separator: opts}
   if (!opts) opts = {}
 
+  if (!db) {
+    throw new TypeError('First argument must be a levelup or abstract-leveldown instance')
+  }
+
   var separator = opts.separator
+  var subdb = down(db, 'subleveldown')
 
   if (!prefix) prefix = ''
   if (!separator) separator = '!'
   if (prefix[0] === separator) prefix = prefix.slice(1)
   if (prefix[prefix.length - 1] === separator) prefix = prefix.slice(0, -1)
 
-  this.db = db
-  this.leveldown = null
-  this.prefix = separator + prefix + separator
+  this.leveldown = down(db)
+  this.db = this.leveldown // For compat with down()
+  this.prefix = ((subdb && subdb.prefix) || '') + separator + prefix + separator
   this._beforeOpen = opts.open
 
   var self = this
@@ -73,25 +78,15 @@ SubDown.prototype.type = 'subleveldown'
 SubDown.prototype._open = function (opts, cb) {
   var self = this
 
-  this.db.open(function (err) {
+  open(this.leveldown, function (err) {
     if (err) return cb(err)
-
-    var subdb = down(self.db, 'subleveldown')
-
-    if (subdb && subdb.prefix) {
-      self.prefix = subdb.prefix + self.prefix
-      self.leveldown = down(subdb.db)
-    } else {
-      self.leveldown = down(self.db)
-    }
-
     if (self._beforeOpen) self._beforeOpen(cb)
     else cb()
   })
 }
 
 SubDown.prototype._close = function (cb) {
-  this.leveldown.close(cb)
+  close(this.leveldown, cb)
 }
 
 SubDown.prototype._put = function (key, value, opts, cb) {
@@ -146,6 +141,24 @@ SubDown.prototype._iterator = function (opts) {
 }
 
 module.exports = SubDown
+
+function open (db, callback) {
+  if (!db.status) throw new Error('db has no status')
+  if (db.status === 'open') return process.nextTick(callback)
+  if (db.status === 'new' || db.status === 'closed') return db.open(callback)
+
+  // Hack
+  setTimeout(() => open(db, callback), 100)
+}
+
+function close (db, callback) {
+  if (!db.status) throw new Error('db has no status')
+  if (db.status === 'closed') return process.nextTick(callback)
+  if (db.status === 'open') return db.close(callback)
+
+  // Hack
+  setTimeout(() => close(db, callback), 100)
+}
 
 function down (db, type) {
   if (typeof db.down === 'function') return db.down(type)

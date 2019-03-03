@@ -20,12 +20,12 @@ require('abstract-leveldown/abstract/iterator-range-test').all(down, test, testC
 
 test('SubDown constructor', function (t) {
   t.test('can be called without new', function (t) {
-    var sub = subdown()
+    var sub = subdown({})
     t.is(sub instanceof subdown, true, 'instanceof subdown')
     t.end()
   })
   t.test('missing prefix and missing separator', function (t) {
-    var sub = subdown()
+    var sub = subdown({})
     t.is(sub.prefix, '!!')
     t.end()
   })
@@ -132,10 +132,8 @@ test('SubDb main function', function (t) {
     var sub1 = subdb(db, 'test1')
     var sub2 = subdb(sub1, 'test2')
     sub2.once('open', function () {
-      t.is(sub1.db instanceof encoding, true, 'sub1 encoding-down')
       t.is(sub1.db.db.prefix, '!test1!', 'sub1 prefix ok')
       t.is(sub1.db.db.leveldown instanceof memdown, true, 'memdown')
-      t.is(sub2.db instanceof encoding, true, 'sub2 encoding-down')
       t.is(sub2.db.db.prefix, '!test1!!test2!', 'sub2 prefix ok')
       t.is(sub2.db.db.type, 'subleveldown', '.type is subleveldown')
       t.is(sub2.db.db.leveldown instanceof memdown, true, 'memdown')
