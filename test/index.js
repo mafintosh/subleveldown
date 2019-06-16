@@ -249,3 +249,31 @@ test('SubDb main function', function (t) {
     })
   })
 })
+
+test('Failing Tests', function (t) {
+  t.test('Issue #64 - sub db (as leaf) with buffer keys', function (t) {
+    t.plan(2)
+
+    var db = levelup(encoding(memdown()))
+    db.once('open', function () {
+      var subA = subdb(db, 'logs') // Change Key to "AAAA" and it works
+      var subB = subdb(db, 'data')
+      var subC = subdb(subB, '1234', { keyEncoding: 'buffer' })
+
+      subA.put('1234', 'FOO', function () {
+        subA.get('1234', 'FOO', function () {
+          subC.put(Buffer.from([10]), 10, function () {
+            subA.get('1234', 'FOO', function () {
+              subC.put(Buffer.from([20]), 20, function () {
+                subA.get('1234', function (err, value) {
+                  t.error(err, 'no error')
+                  t.equal(value, 'FOO')
+                })
+              })
+            })
+          })
+        })
+      })
+    })
+  })
+})
