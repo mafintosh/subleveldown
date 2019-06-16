@@ -258,7 +258,7 @@ test('Failing Tests', function (t) {
     db.once('open', function () {
       var subA = subdb(db, 'logs') // Change Key to "AAAA" and it works
       var subB = subdb(db, 'data')
-      var subC = subdb(subB, '1234', { keyEncoding: 'buffer' })
+      var subC = subdb(subB, '1234', { keyEncoding: 'binary' })
 
       subA.put('1234', 'FOO', function () {
         subA.get('1234', 'FOO', function () {
